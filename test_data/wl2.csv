@@ -1,0 +1,7 @@
+id,text,label_llm,sarkasme_llm,alasan_llm,status,provenance
+1,"Program MBG sangat membantu orang tua, terima kasih pemerintah!",positif,false,dryrun-pos,ok-dryrun,dryrun-heuristic
+2,"Anak saya keracunan setelah makan MBG, ini gimana sih?",negatif,false,dryrun-neg,ok-dryrun,dryrun-heuristic
+3,MBG mulai kapan di desa saya?,netral,false,dryrun-net,ok-dryrun,dryrun-heuristic
+5,JUALAN OBAT KUAT WA 0812xxx,netral,false,dryrun-net,ok-dryrun,dryrun-heuristic
+6,"Mantap programnya, anak senang sarapan gratis",positif,false,dryrun-pos,ok-dryrun,dryrun-heuristic
+7,Anggaran boros mending buat gaji guru aja,negatif,false,dryrun-neg,ok-dryrun,dryrun-heuristic
