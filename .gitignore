@@ -4,3 +4,4 @@ __pycache__/
 data/.hash_map.json
 *.log
 runs/
+data/.vscode/
