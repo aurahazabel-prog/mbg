@@ -37,7 +37,7 @@ def main(csv_path: str) -> None:
         sys.exit(f"File tidak ditemukan: {path}")
 
     dialect = sniff_dialect(path)
-    with path.open(newline="", encoding="utf-8", errors="replace") as fh:
+    with path.open(newline="", encoding="utf-8-sig", errors="replace") as fh:
         reader = csv.DictReader(fh, dialect=dialect)
         fieldnames = reader.fieldnames or []
         rows = list(reader)
@@ -58,10 +58,19 @@ def main(csv_path: str) -> None:
         w(f"- `{col}`: kosong/NaN **{empty}** ({empty / n:.1%}), unik **{uniq}**")
 
     # 2. Tebak peran kolom
-    def cols_with(hints):
-        return [c for c in fieldnames if any(h in c.lower() for h in hints)]
+    def is_id_like(col: str) -> bool:
+        lc = col.lower()
+        return lc == "id" or lc.endswith("_id") or any(h in lc for h in ("url", "user", "nama", "link"))
 
-    text_cols = cols_with(TEXT_HINTS) or ([fieldnames[0]] if fieldnames else [])
+    def cols_with(hints, skip_id=False):
+        out = [c for c in fieldnames if any(h in c.lower() for h in hints)]
+        return [c for c in out if not (skip_id and is_id_like(c))] if skip_id else out
+
+    time_hints_all = cols_with(TIME_HINTS)
+    text_cols = [c for c in cols_with(TEXT_HINTS, skip_id=True) if c not in time_hints_all]
+    prio = ("text", "komentar", "isi", "content", "body")
+    text_cols.sort(key=lambda c: next((k for k, h in enumerate(prio) if h in c.lower()), 99))
+    text_cols = text_cols or ([fieldnames[0]] if fieldnames else [])
     time_cols = cols_with(TIME_HINTS)
     id_cols = cols_with(ID_HINTS)
     label_cols = cols_with(LABEL_HINTS)
