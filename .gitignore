@@ -6,3 +6,4 @@ data/.hash_map.json
 runs/
 data/.vscode/
 kaggle_bundle/
+.DS_Store
