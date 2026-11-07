@@ -1,0 +1,9 @@
+X5 LLM(W2)-vs-gold: 568/700 = 81.1%
+  gold=negatif  w2=negatif  336
+  gold=netral   w2=netral   177
+  gold=netral   w2=negatif  75
+  gold=positif  w2=positif  55
+  gold=netral   w2=positif  43
+  gold=negatif  w2=positif  6
+  gold=negatif  w2=netral   6
+  gold=positif  w2=negatif  2
