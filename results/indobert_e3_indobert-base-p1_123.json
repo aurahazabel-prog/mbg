@@ -1,0 +1,28 @@
+{
+  "exp": "e3",
+  "model": "indobenchmark/indobert-base-p1",
+  "seed": 123,
+  "macro_f1": 0.6147553414514474,
+  "per_class_f1": {
+    "negatif": 0.7421383647798742,
+    "netral": 0.7021276595744681,
+    "positif": 0.4
+  },
+  "confusion": [
+    [
+      177,
+      43,
+      13
+    ],
+    [
+      49,
+      132,
+      17
+    ],
+    [
+      18,
+      3,
+      17
+    ]
+  ]
+}

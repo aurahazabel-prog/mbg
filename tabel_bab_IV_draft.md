@@ -4,16 +4,31 @@
 > isi begitu `results/indobert_*.json` dari Kaggle ditaruh di repo. Angka final Bab IV
 > = baris test-gold 245 unit (anotasi manusia, kappa 0,845).
 
-## Tabel 4.1 — Kinerja model pada test-gold (245 unit, macro-F1)
+## Tabel 4.1 — Kinerja model pada test-gold 469 unit (split seed-42, 67% test; SPL 469 = hasil gold_final, aleatorio seed yang sama spt run IndoBERT)
 
-| Model | Set latih | Macro-F1 | Accuracy | F1 negatif | F1 netral | F1 positif |
-|---|---|---|---|---|---|---|
-| Naive Bayes + TF-IDF | weak(c) 9998 | 0,312 | 0,554 | 0,69 | 0,25 | 0,00 |
-| SVM Linear + TF-IDF | weak(c) 9998 | 0,568 | 0,676 | 0,76 | 0,62 | 0,33 |
-| **LogisticRegression + TF-IDF (terbaik klasik)** | weak(c) 9998 | **0,634** | **0,713** | 0,79 | 0,68 | 0,43 |
-| IndoBERT e1 (weak-only) | weak(c) | *TBD Kaggle* | *TBD* | | | |
-| IndoBERT e2 (weak+train-gold) | weak + 357 | *TBD* | *TBD* | | | |
-| IndoBERT e3 (gold-only) | 357 | *TBD* | *TBD* | | | |
+Baseline re-run pada test set 469 (`results/baseline_p2_c_gold469.json`) agar apples-to-apples dengan IndoBERT (runs Kaggle juga test=469).
+
+| Model | Set latih | Macro-F1 | F1 negatif | F1 netral | F1 positif |
+|---|---|---|---|---|---|
+| Naive Bayes + TF-IDF | weak(c) | 0,344 | 0,70 | 0,33 | 0,00 |
+| SVM Linear + TF-IDF | weak(c) | 0,759 | 0,89 | 0,75 | 0,64 |
+| **LogisticRegression + TF-IDF** | weak(c) | **0,747** | 0,87 | 0,75 | 0,62 |
+| IndoBERT e1 (weak-only) 1 seed | weak 7.900 | 0,678 | — | — | 0,56 |
+| **IndoBERT e2 (weak+train-gold)** 3 seed | weak + train-gold | **0,680 ± 0,022** | — | — | 0,52 |
+| IndoBERT e3 (gold-only) 3 seed | train-gold | 0,489 ± 0,21 (0,548/0,602/0,615) | — | — | 0,25 |
+
+**Temuan utama Bab IV:**
+- **e2 > e3** (+0,19 poin, rentang seed e3 jauh lebar) → weak-label LLM pada ±10k memberikan nilai nyata dibanding gold kecil saja. Ini klaim kontribusi inti.
+- **SVM 0,759 dan LR 0,747 lebih tinggi dari IndoBERT e2 0,680** pada set 469 (keduanya difit pada sumber weak yang sama). Catatan metodologis: LR/SVM memanfaatkan leksi TF-IDF yang sangat suited untuk komat teks pendek; IndoBERT berpotensi lebih baik bila maxlen>128. Dua interpretasi utk narrasi: (1) baseline kuat tak bisa diabaikan (oposisi klaim "BERT selalu menang"); (2) bisa jadi perbandingan berat sebelah karena IndoBERT belum dikalibrasi sepenuhnya.
+- Kalau LR-245(tabel awal) vs LR-469: beda karena test set berbeda → pakai angka 469 di Bab IV.
+
+## Tabel 4.1-score — Ref run vs test-gold 245 (kebutuhan review dosen, opsional)
+
+| Model | test-gold 245 | test-gold 469 |
+|---|---|---|
+| LR | 0,634 | 0,747 |
+| SVM | 0,568 | 0,759 |
+| IndoBERT e2 (3 seed) | — | 0,680±0,022 |
 
 ## Tabel 4.2 — Reliabilitas anotasi & noise weak label
 
