@@ -140,7 +140,7 @@ Riset sentimen Indonesia sudah sangat banyak (pemilu, Pilkada, e-commerce, film,
   2. LLM tidak pernah menjadi juri/verifikator gold set dan tidak pernah dipakai menghitung metrik akhir.
   3. Prompt (sistem + few-shot), nama & versi model, parameter (effort/max_tokens), dan contoh output dilampirkan penuh → replikabilitas.
   4. Agreement LLM-vs-gold (Cohen's Kappa, eksperimen X5) dilaporkan sebagai estimasi noise label.
-- Label lemah = W1 ∧ W2 sepakat; konflik → *unlabeled pool* (tidak dipakai latih). Laporkan tingkat kesepakatan W1–W2 sebagai estimasi awal noise.
+- Kolom `weak_final` = W1 ∧ W2 sepakat; konflik → `unlabeled`. **Set latih (keputusan K5, default `--strategy c`)**: konflik diisi `label_w2` (LLM) — lihat `scripts/baseline_sklearn.py::load_weak` / `scripts/train_indobert.py::load_weak`; opsi ketat `--strategy a` = hanya sepakat, dilaporkan sebagai ablasi (a) vs (c) di Bab IV. WAJIB eksplisit: n konflik-W2 dan proporsi kelasnya (bias negatif kuat; cetak otomatis oleh `scripts/consensus.py`), plus catatan bahwa gold set tetap dikecualikan dari latih di kedua strategi. Laporkan tingkat kesepakatan W1–W2 sebagai estimasi awal noise.
 
 **Tahap 4 — Anotasi gold set (protokol; inti justifikasi ilmiah Anda):**
 - Sampling: 700 unit (stratified proporsional panjang komentar + coverage weak label Pos/Net/Neg & pool konflik).

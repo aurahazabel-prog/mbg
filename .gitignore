@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/.hash_map.json
+*.log
+runs/
+data/.vscode/
+kaggle_bundle/
+.DS_Store

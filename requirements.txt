@@ -1,0 +1,12 @@
+# Alur weak labeling & profiling: stdlib saja (Python 3.10+)
+scikit-learn>=1.4
+numpy>=1.26
+# preprocessing klasik (varian P2)
+Sastrawi>=1.0.1
+# modeling transformer (scripts/train_indobert.py — jalankan di GPU Kaggle/Colab)
+torch>=2.2
+transformers>=4.40
+datasets>=2.19
+accelerate>=0.30
+# analisis tema (Tahap 7): uncomment saat minggu 10
+# bertopic>=1.5

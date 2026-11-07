@@ -1,0 +1,28 @@
+{
+  "exp": "e3",
+  "model": "cointegrated/rubert-tiny2",
+  "seed": 42,
+  "macro_f1": 0.25146198830409355,
+  "per_class_f1": {
+    "negatif": 0.42105263157894735,
+    "netral": 0.3333333333333333,
+    "positif": 0.0
+  },
+  "confusion": [
+    [
+      8,
+      5,
+      0
+    ],
+    [
+      9,
+      5,
+      0
+    ],
+    [
+      8,
+      6,
+      0
+    ]
+  ]
+}

@@ -166,6 +166,76 @@ def mock_label(text: str) -> tuple[str, str, str]:
     return "netral", "false", "dryrun-net"
 
 
+# ------------------------------------------------- engine: OpenAI-compat --
+
+def openai_chat(base_url: str, key: str, model: str, text: str, max_tokens: int,
+                no_think: bool = False, timeout: int = 120) -> tuple[str | None, str, str]:
+    import urllib.request
+    payload = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "reasoning_effort": "low",
+        "messages": [
+            {"role": "system", "content": INSTRUKSI + "\n\n" + FEWSHOT},
+            {"role": "user", "content": text},
+        ],
+    }
+    if no_think:
+        payload.pop("reasoning_effort")
+        payload["thinking"] = {"type": "disabled"}
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{base_url.rstrip('/')}/chat/completions", data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                 "User-Agent": "mbg-weak-labeler/1.0"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        obj = json.loads(resp.read())
+    msg = obj["choices"][0]["message"]
+    raw = (msg.get("content") or msg.get("reasoning_content") or "").strip()
+    return parse_answer(raw)
+
+
+def run_openai(args, todo, save, out_path: Path) -> None:
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    key = args.api_key or __import__("os").environ.get("OPENAI_API_KEY") \
+        or __import__("os").environ.get("OPENCODE_API_KEY")
+    if not key:
+        sys.exit("Butuh --api-key atau env OPENAI_API_KEY/OPENCODE_API_KEY untuk --engine openai")
+    lock = threading.Lock()
+    n_ok = n_err = 0
+
+    def work(rid_text):
+        nonlocal n_ok, n_err
+        rid, t = rid_text
+        last = ""
+        for attempt in range(4):
+            try:
+                lab, sark, alasan = openai_chat(args.base_url, key, args.model, t, args.max_tokens,
+                                                args.no_think)
+                with lock:
+                    if lab:
+                        save(rid, t, lab, sark, alasan, "ok", args.model)
+                        n_ok += 1
+                    else:
+                        save(rid, t, "", "", alasan or "", "parse_error", args.model)
+                        n_err += 1
+                return
+            except Exception as e:  # noqa: retry — 429/5xx/network
+                last = str(e)[:150]
+                time.sleep(2 * (attempt + 1))
+        with lock:
+            save(rid, t, "", "", last, "request_error", args.model)
+            n_err += 1
+
+    with ThreadPoolExecutor(max_workers=args.concurrency) as ex:
+        for i, _ in enumerate(ex.map(work, todo), 1):
+            if i % 25 == 0 or i == len(todo):
+                print(f"[progress] {i}/{len(todo)} ok={n_ok} err={n_err}")
+    print(f"SELESAI ({args.engine}). ok={n_ok} err={n_err} → {out_path}")
+
+
 # ------------------------------------------------------------------ main --
 
 def main() -> None:
@@ -180,6 +250,15 @@ def main() -> None:
     ap.add_argument("--chunk", type=int, default=5000, help="request per batch (maks 100.000)")
     ap.add_argument("--max-tokens", type=int, default=1024)
     ap.add_argument("--poll", type=int, default=30, help="detik jeda polling status batch")
+    ap.add_argument("--engine", choices=["anthropic", "openai"], default="anthropic",
+                    help="openai = endpoint chat-completions kompatibel OpenAI (mis. opencode zen); "
+                         "kunci via --api-key atau env OPENAI_API_KEY/OPENCODE_API_KEY")
+    ap.add_argument("--base-url", default="https://opencode.ai/inference/openai/v1")
+    ap.add_argument("--api-key", help="key API (default: env OPENAI_API_KEY / OPENCODE_API_KEY / ANTHROPIC_API_KEY)")
+    ap.add_argument("--concurrency", type=int, default=4, help="thread paralel untuk --engine openai")
+    ap.add_argument("--no-think", action="store_true",
+                    help="--engine openai: matikan reasoning/thinking tokens (lebih murah & cepat; "
+                         "pakai untuk model non-reasoning atau saat biaya per-token output tinggi)")
     ap.add_argument("--dry-run", action="store_true", help="tanpa API — heuristik kata kunci")
     ap.add_argument("--estimate-only", action="store_true", help="cetak estimasi biaya lalu berhenti")
     args = ap.parse_args()
@@ -219,14 +298,33 @@ def main() -> None:
     if args.limit:
         items = items[: args.limit]
 
-    # resume: skip id yang sudah ok di file out
+    # resume: skip id yang sudah ok di file out; dedup baris dobel sisa run
+    # sebelumnya (append-only + retry error ⇒ id sama bisa muncul >1x).
+    # Aturan pilih per id: baris ok selalu menang atas error; sesama status → terakhir.
     out_path = Path(args.out)
     done_ids: set[str] = set()
     if out_path.exists():
+        kept: dict[str, dict] = {}
+        order: list[str] = []
         with out_path.open(newline="", encoding="utf-8") as fh:
             for r in csv.DictReader(fh):
-                if (r.get("status") or "").startswith("ok"):
-                    done_ids.add(r.get("id", ""))
+                rid = r.get("id", "")
+                if rid not in kept:
+                    order.append(rid)
+                elif not (r.get("status") or "").startswith("ok") \
+                        and (kept[rid].get("status") or "").startswith("ok"):
+                    continue  # jangan timpa ok dengan error
+                kept[rid] = r
+        rows_clean = [kept[i] for i in order]
+        tmp = out_path.with_suffix(out_path.suffix + ".tmp")
+        fieldnames = rows_clean[0].keys() if rows_clean else [
+            "id", "text", "label_llm", "sarkasme_llm", "alasan_llm", "status", "provenance"]
+        with tmp.open("w", newline="", encoding="utf-8") as fh:
+            w2 = csv.DictWriter(fh, fieldnames=list(fieldnames))
+            w2.writeheader()
+            w2.writerows(rows_clean)
+        tmp.replace(out_path)
+        done_ids = {r["id"] for r in rows_clean if (r.get("status") or "").startswith("ok")}
     todo = [(i, t) for i, t in items if i not in done_ids]
 
     # estimasi biaya
@@ -261,6 +359,10 @@ def main() -> None:
                 lab, sark, alasan = mock_label(t)
                 save(rid, t, lab, sark, alasan, "ok-dryrun", "dryrun-heuristic")
             print(f"[dry-run] {len(todo)} baris ditulis ke {out_path} — HEURISTIK, bukan LLM.")
+            return
+
+        if args.engine == "openai":
+            run_openai(args, todo, save, out_path)
             return
 
         import anthropic  # noqa: lazy import — tidak dibutuhkan utk --dry-run
